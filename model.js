@@ -1,5 +1,4 @@
 // TODO
-// lose condition
 // score
 // piece preview
 // wall kick
