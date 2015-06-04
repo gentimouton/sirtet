@@ -1,7 +1,7 @@
 // TODO
-// score
 // piece preview
 // wall kick
+// score when dropping
 // cookie for auth
 
 // Tetris spec: http://www.colinfahey.com/tetris/tetris.html
@@ -81,8 +81,10 @@ function Model() {
   
   this.COLS = 10;
   this.ROWS = 20+1;   // top row is hidden so I, L, and J rotations can happen
-  this.board = [];    // matrix. Empty cells are 0, filled are 1.
-  this.curPiece = {'name': null, 'orientation': null, 'x': null, 'y': null};
+  this.board = [];    // matrix[y][x]. Empty cells are 0, filled are 1.
+  this.curPiece = {};
+  this.nextPieceName = null;
+  this.score = 0;
   this.gameOver = false;
   this.paused = false;
   this.tickTimer = null;
@@ -187,6 +189,7 @@ function Model() {
           }
         }
       }
+      this.score += 1; // TODO: should depend on height dropped
       // find full rows
       var fullRows = []; // list of rows to be removed
       for (var y = 0; y < this.board.length; y ++) {
@@ -211,6 +214,7 @@ function Model() {
           }
         }
       }
+      this.score += fullRows.length * 5; // TODO: more points if more lines 
       // create a new piece
       this.newPiece();
     }
@@ -249,7 +253,8 @@ function Model() {
 
   // place a new piece at the top
   this.newPiece = function() {
-    var name = this.pieceList[Math.floor(rng.next() * this.pieceList.length)];
+    var name = this.nextPieceName;
+    this.nextPieceName = this.pieceList[Math.floor(rng.next() * this.pieceList.length)];
     var offset = this.pieces[name][0].startOffset;
     // place piece at the center-top of the screen
     this.curPiece = {'name': name, 
@@ -280,7 +285,9 @@ function Model() {
   }
 
   this.init = function() {
+    this.score = 0;
     this.newBoard();
+    this.nextPieceName = this.pieceList[Math.floor(rng.next() * this.pieceList.length)];
     this.newPiece();
     this.resume();
   }
