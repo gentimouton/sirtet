@@ -10,11 +10,14 @@ function View() {
   this.boardCtx = document.getElementById('board').getContext('2d');
   this.sideCtx = document.getElementById('nextPiece').getContext('2d');
 
-  // draw a single block at (x, y)
-  this.drawBlock = function(ctx, y, x) {
-    // y-1 because we hide the top line
-    ctx.fillRect(this.BW * x, this.BH * (y - 1), this.BW, this.BH);
-    ctx.strokeRect(this.BW * x, this.BH * (y - 1), this.BW, this.BH);
+  // draw in canvas ctx at (x, y) a single block of color c
+  this.drawBlock = function(ctx, y, x, c) {
+    ctx.fillStyle = c || 'black';
+    ctx.strokeStyle = 'black'; // black outline
+    var sx = this.BW * x + 1; // +1 so we still see the grid  
+    var sy = this.BH * (y - 1) + 1; // y-1 because we hide the top line
+    ctx.fillRect(sx, sy, this.BW - 1, this.BH - 1);
+    ctx.strokeRect(sx, sy, this.BW - 1, this.BH - 1); // for outline
   }
 
   // draw the background grid
@@ -41,7 +44,8 @@ function View() {
     for ( var j = 1; j < b.length; j++) { // start at 1 to hide top row
       for ( var i = 0; i < b[j].length; i++) {
         if (b[j][i]) {
-          this.drawBlock(this.boardCtx, j, i);
+          var color = PD.pieces[b[j][i]].color;
+          this.drawBlock(this.boardCtx, j, i, color);
         }
       }
     }
@@ -50,12 +54,12 @@ function View() {
   // draw the current piece
   this.drawCurPiece = function() {
     var curP = model.curPiece;
-    var p = model.pieces[curP.name][curP.orientation];
-    var shape = p.shape;
+    var shape = PD.pieces[curP.name].configs[curP.orientation].shape;
+    var color = PD.pieces[curP.name].color;
     for ( var y = 0; y < shape.length; y++) {
       for ( var x = 0; x < shape[y].length; x++) {
         if (shape[y][x]) {
-          this.drawBlock(this.boardCtx, curP.y + y, curP.x + x);
+          this.drawBlock(this.boardCtx, curP.y + y, curP.x + x, color);
         }
       }
     }
@@ -82,13 +86,13 @@ function View() {
   // draw the next piece to come
   this.drawNextPiece = function() {
     var npn = model.nextPieceName;
-    var p = model.pieces[npn][0];
-    var shape = p.shape;
-    var xOffset = npn == 'i' ? 0 : 1;
+    var shape = PD.pieces[npn].configs[0].shape;
+    var color = PD.pieces[npn].color;
+    var xOffset = (shape[0].length == 4) ? 0 : 1; // make the ---- shape fit
     for ( var y = 0; y < shape.length; y++) {
       for ( var x = 0; x < shape[y].length; x++) {
         if (shape[y][x]) {
-          this.drawBlock(this.sideCtx, y + 2, x + xOffset);
+          this.drawBlock(this.sideCtx, y + 2, x + xOffset, color);
         }
       }
     }
@@ -103,10 +107,10 @@ function View() {
   this.renderBoard = function() {
     this.boardCtx.clearRect(0, 0, this.ctxW, this.ctxH);
     this.sideCtx.clearRect(0, 0, 120, 120);
-    this.drawGrid();
+    //this.drawGrid();
     this.drawBoard();
     this.drawCurPiece();
-    this.drawSideGrid();
+    //this.drawSideGrid();
     this.drawNextPiece();
     this.updateScore();
   }

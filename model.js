@@ -23,61 +23,6 @@ var model;
 
 // ------------- MODEL ---------------
 function Model() {
-
-  this.pieceList = ['o','i','s','z','l','j','t'];
-  //this.pieceList = ['o','i','s'];
-  // startOffset is the position of the piece's top-left block compared to the
-  // board's (5, 1) cell, when the piece is created.
-  // rotOffset is how I have to translate the piece when I rotate it.
-  this.pieces = {
-    'o':[ {'shape': [[1,1],
-                     [1,1]], 'startOffset': [1,0], 'rotOffset': [0,0]} ],
-    'i': [ {'shape': [[1,1,1,1]], 'startOffset': [2,0], 'rotOffset': [-2,1]},
-           {'shape':[[1],
-                     [1],
-                     [1],
-                     [1]], 'startOffset': [0,1], 'rotOffset': [2,-1]} ],
-    's': [ {'shape': [[0,1,1],
-                      [1,1,0]], 'startOffset': [1,0], 'rotOffset': [-1,1]},
-           {'shape':[[1,0],
-                     [1,1],
-                     [0,1]], 'startOffset': [0,1], 'rotOffset': [1,-1]} ],
-    'z': [ {'shape': [[1,1,0],
-                      [0,1,1]], 'startOffset': [1,0], 'rotOffset': [-1,1]},
-           {'shape': [[0,1],
-                      [1,1],
-                      [1,0]], 'startOffset': [0,1], 'rotOffset': [1,-1]} ],
-    'l': [ {'shape': [[1,1,1],
-                      [1,0,0]], 'startOffset': [1,0], 'rotOffset': [0,1]},
-           {'shape': [[1,0],
-                      [1,0],
-                      [1,1]], 'startOffset': [0,1], 'rotOffset': [1,-1]},
-           {'shape': [[0,0,1],
-                      [1,1,1]], 'startOffset': [1,-1], 'rotOffset': [-1,0]},
-           {'shape': [[1,1],
-                      [0,1],
-                      [0,1]], 'startOffset': [1,1], 'rotOffset': [0,0]} ],
-    'j': [ {'shape': [[1,1,1],
-                      [0,0,1]], 'startOffset': [1,0], 'rotOffset': [0,1]},
-           {'shape': [[1,1],
-                      [1,0],
-                      [1,0]], 'startOffset': [0,1], 'rotOffset': [1,-1]},
-           {'shape': [[1,0,0],
-                      [1,1,1]], 'startOffset': [1,1], 'rotOffset': [-1,0]},
-           {'shape': [[0,1],
-                      [0,1],
-                      [1,1]], 'startOffset': [1,1], 'rotOffset': [0,0]} ],
-    't': [ {'shape': [[1,1,1],
-                      [0,1,0]], 'startOffset': [1,0], 'rotOffset': [0,1]},
-           {'shape': [[1,0],
-                      [1,1],
-                      [1,0]], 'startOffset': [0,1], 'rotOffset': [1,-1]},
-           {'shape': [[0,1,0],
-                      [1,1,1]], 'startOffset': [1,1], 'rotOffset': [-1,0]},
-           {'shape': [[0,1],
-                      [1,1],
-                      [0,1]], 'startOffset': [1,1], 'rotOffset': [0,0]} ]
-  }
   
   this.COLS = 10;
   this.ROWS = 20+1;   // top row is hidden so I, L, and J rotations can happen
@@ -122,9 +67,10 @@ function Model() {
   // If the copy is in a valid position, replace current piece by the copy.
   this.tryAction = function(dx, rotate) {
     var p = JSON.parse(JSON.stringify(this.curPiece)); // copy of current piece
-    var nShapes = this.pieces[p.name].length;
+    var pdata = PD.pieces[p.name];
+    var nShapes = pdata.configs.length;
     p.orientation = (p.orientation + rotate) % nShapes; // abuse true = 1
-    var pConfig = this.pieces[p.name][p.orientation]; // piece configuration
+    var pConfig = pdata.configs[p.orientation]; // piece configuration
     var shape = pConfig.shape;
     p.x += dx + rotate * pConfig.rotOffset[0];
     p.y += rotate * pConfig.rotOffset[1];
@@ -156,8 +102,7 @@ function Model() {
   // Return whether the move is valid.
   this.tryDescent = function() {
     var p = JSON.parse(JSON.stringify(this.curPiece)); // copy of current piece
-    var pConfig = this.pieces[p.name][p.orientation]; // piece configuration
-    var shape = pConfig.shape;
+    var shape = PD.pieces[p.name].configs[p.orientation].shape;
     p.y += 1;
     
     var validPosition = true;
@@ -174,7 +119,7 @@ function Model() {
         }
       }
     }
-    
+
     if(validPosition) { // updated copy is valid
       this.curPiece = p;
     }
@@ -185,7 +130,7 @@ function Model() {
           ccx = this.curPiece.x + ii;
           ccy = this.curPiece.y + jj;
           if (shape[jj][ii]) { // only look at full cells of the piece
-            this.board[ccy][ccx] = shape[jj][ii];
+            this.board[ccy][ccx] = p.name;
           }
         }
       }
@@ -253,17 +198,17 @@ function Model() {
 
   // place a new piece at the top
   this.newPiece = function() {
-    var name = this.nextPieceName;
-    this.nextPieceName = this.pieceList[Math.floor(rng.next() * this.pieceList.length)];
-    var offset = this.pieces[name][0].startOffset;
+    var pname = this.nextPieceName;
+    this.nextPieceName = PD.pieceList[Math.floor(rng.next() * PD.pieceList.length)];
+    var offset = PD.pieces[pname].configs[0].startOffset;
     // place piece at the center-top of the screen
-    this.curPiece = {'name': name, 
-                      'orientation': 0, 
-                      'x': 5 - offset[0], 'y': 1 - offset[1]};
+    this.curPiece = {'name': pname, 
+                     'orientation': 0, 
+                     'x': 5 - offset[0], 'y': 1 - offset[1]};
+    
     // game over if the piece collides with the board
     var p = this.curPiece;
-    var pConfig = this.pieces[p.name][p.orientation]; // piece configuration
-    var shape = pConfig.shape;
+    var shape = PD.pieces[p.name].configs[p.orientation].shape;
     var validPosition = true;
     var cx, cy; // store board coordinates of each cell of the updated piece
     for (var j = 0; j < shape.length; j++) {
@@ -287,7 +232,7 @@ function Model() {
   this.init = function() {
     this.score = 0;
     this.newBoard();
-    this.nextPieceName = this.pieceList[Math.floor(rng.next() * this.pieceList.length)];
+    this.nextPieceName = PD.pieceList[Math.floor(rng.next() * PD.pieceList.length)];
     this.newPiece();
     this.resume();
   }
