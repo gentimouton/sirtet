@@ -172,17 +172,13 @@ function Model() {
     clearInterval(this.tickTimer);
   }
 
-  this.tick = function() {
-    return this.tryDescent();
-  }
-
   // user pressed ESC key again
   this.resume = function() {
     this.paused = false;
     // setInterval is bound to the global context, ie the window object. 
     // We need to bind the model as this.
     // http://stackoverflow.com/a/21712258/856897
-    this.tickTimer = setInterval(this.tick.bind(this), 1000); // milliseconds
+    this.tickTimer = setInterval(this.tryDescent.bind(this), 1000); // milliseconds
   }
 
   // create board

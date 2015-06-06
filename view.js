@@ -9,12 +9,15 @@ function View() {
   // var canvas = document.getElementsByTagName('canvas')[0];
   this.boardCtx = document.getElementById('board').getContext('2d');
   this.sideCtx = document.getElementById('nextPiece').getContext('2d');
+  // cache certain variables from the model
+  // to prevent heavy re-computations between 2 frames of the view
+  this.modelWasPaused = false;
 
   // draw in canvas ctx at (x, y) a single block of color c
   this.drawBlock = function(ctx, y, x, c) {
     ctx.fillStyle = c || 'black';
     ctx.strokeStyle = 'black'; // black outline
-    var sx = this.BW * x + 1; // +1 so we still see the grid  
+    var sx = this.BW * x + 1; // +1 so we still see the grid
     var sy = this.BH * (y - 1) + 1; // y-1 because we hide the top line
     ctx.fillRect(sx, sy, this.BW - 1, this.BH - 1);
     ctx.strokeRect(sx, sy, this.BW - 1, this.BH - 1); // for outline
@@ -103,23 +106,37 @@ function View() {
     $('#scoreBox').html(model.score);
   }
 
+  // display pause menu, if the game is currently paused
+  this.displayMenu = function() {
+    if (model.paused != this.modelWasPaused) { // only if a change happened
+      this.modelWasPaused = model.paused;
+      if (model.paused) {
+        $('#overlay').show();
+      } else {
+        $('#overlay').hide();
+      }
+    }
+  }
+
   // draw the settled pieces and the current piece
-  this.renderBoard = function() {
+  this.render = function() {
     this.boardCtx.clearRect(0, 0, this.ctxW, this.ctxH);
-    this.sideCtx.clearRect(0, 0, 120, 120);
-    //this.drawGrid();
+    // this.drawGrid();
     this.drawBoard();
     this.drawCurPiece();
-    //this.drawSideGrid();
+    this.sideCtx.clearRect(0, 0, 120, 120);
+    // this.drawSideGrid();
     this.drawNextPiece();
     this.updateScore();
+    this.displayMenu();
   }
 
   this.init = function() {
+    $('#overlay').hide();
     // setInterval is bound to global context,
     // so we need to bind the view as this.
     // http://stackoverflow.com/a/21712258/856897
-    setInterval(this.renderBoard.bind(this), 30);// milliseconds
+    setInterval(this.render.bind(this), 30);// milliseconds
   }
 
 } // end view
