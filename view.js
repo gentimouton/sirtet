@@ -12,7 +12,9 @@ function View() {
   // cache certain variables from the model
   // to prevent heavy re-computations between 2 frames of the view
   this.modelWasPaused = false;
-  this.popSound = new Audio('pop.ogg');
+  this.popSound = new Audio('assets/pop.ogg');
+  this.bgm = new Audio('assets/BWV996.ogg')
+  this.bgm.loop = true;
   
   // draw in canvas ctx at (x, y) a single block of color c
   this.drawBlock = function(ctx, y, x, c) {
@@ -127,7 +129,12 @@ function View() {
     while (model.eventQueue.length > 0) {
       e = model.eventQueue.shift();
       if (e.eventType == 'clear') {
-        this.popSound.play();
+        if (e.rows.length == 4) {
+          this.popSound.play();
+        }
+        else {
+          this.popSound.play();
+        }
       }
     }
   }
@@ -146,8 +153,29 @@ function View() {
     this.treatEventQueue();
   }
 
+  this.mute = function() {
+    $('#muteBtn').hide();
+    $('#unmuteBtn').show();
+    this.bgm.muted = true;
+    console.log('mute');
+  }
+
+  this.unmute = function() {
+    $('#unmuteBtn').hide();
+    $('#muteBtn').show();
+    this.bgm.muted = false;
+    console.log('unmute');
+  }
+  
+  
   this.init = function() {
     $('#overlay').hide();
+    // wire the mute/unmute buttons
+    $('#muteBtn').click(function() {view.mute();});
+    $('#unmuteBtn').click(function() {view.unmute();});
+    this.bgm.play();
+    this.unmute();
+    
     // setInterval is bound to global context,
     // so we need to bind the view as this.
     // http://stackoverflow.com/a/21712258/856897
