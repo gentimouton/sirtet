@@ -33,7 +33,8 @@ function Model() {
   this.gameOver = false;
   this.paused = false;
   this.tickTimer = null;
-
+  this.eventQueue = []; // Events for the view. The view pops them. 
+  
   // perform user command onto model
   // commands: 'left', 'right', 'down', 'rotate', 'menu', 'harddrop'
   this.pressKey = function(cmdStr) {
@@ -159,7 +160,10 @@ function Model() {
           }
         }
       }
-      this.score += fullRows.length * 5; // TODO: more points if more lines 
+      this.score += fullRows.length * 5; // TODO: more points if more lines
+      if (fullRows.length > 0) {
+        this.eventQueue.push({'eventType': 'clear', 'rows': fullRows});
+      }
       // create a new piece
       this.newPiece();
     }
