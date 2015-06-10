@@ -15,7 +15,7 @@ function View() {
   this.popSound = new Audio('assets/pop.ogg');
   this.bgm = new Audio('assets/BWV996.ogg')
   this.bgm.loop = true;
-  
+
   // draw in canvas ctx at (x, y) a single block of color c
   this.drawBlock = function(ctx, y, x, c) {
     ctx.fillStyle = c || 'black';
@@ -104,11 +104,6 @@ function View() {
     }
   }
 
-  // update the score
-  this.updateScore = function() {
-    $('#scoreBox').html(model.score);
-  }
-
   // display pause menu, if the game is currently paused
   this.displayMenu = function() {
     if (model.paused != this.modelWasPaused) { // only if a change happened
@@ -128,13 +123,18 @@ function View() {
     var e = null;
     while (model.eventQueue.length > 0) {
       e = model.eventQueue.shift();
-      if (e.eventType == 'clear') {
-        if (e.rows.length == 4) {
-          this.popSound.play();
-        }
-        else {
-          this.popSound.play();
-        }
+      switch (e.eventType) {
+      case 'clear':
+        $('#scoreBox').html(model.score);
+        $('#linesBox').html(model.linesCleared);
+        this.popSound.play();
+        break;
+      case 'gameOver':
+        $('#scoreBox').html(model.score);
+        $('#linesBox').html(model.linesCleared);
+        break;
+      case 'newPiece':
+        break;
       }
     }
   }
@@ -148,34 +148,34 @@ function View() {
     this.sideCtx.clearRect(0, 0, 120, 120);
     // this.drawSideGrid();
     this.drawNextPiece();
-    this.updateScore();
     this.displayMenu();
     this.treatEventQueue();
   }
 
   this.mute = function() {
-    $('#muteBtn').hide();
-    $('#unmuteBtn').show();
+    $('#unmutedBtn').hide();
+    $('#mutedBtn').show();
     this.bgm.muted = true;
-    console.log('mute');
   }
 
   this.unmute = function() {
-    $('#unmuteBtn').hide();
-    $('#muteBtn').show();
+    $('#mutedBtn').hide();
+    $('#unmutedBtn').show();
     this.bgm.muted = false;
-    console.log('unmute');
   }
-  
-  
+
   this.init = function() {
     $('#overlay').hide();
     // wire the mute/unmute buttons
-    $('#muteBtn').click(function() {view.mute();});
-    $('#unmuteBtn').click(function() {view.unmute();});
+    $('#unmutedBtn').click(function() {
+      view.mute();
+    });
+    $('#mutedBtn').click(function() {
+      view.unmute();
+    });
     this.bgm.play();
     this.unmute();
-    
+
     // setInterval is bound to global context,
     // so we need to bind the view as this.
     // http://stackoverflow.com/a/21712258/856897

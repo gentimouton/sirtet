@@ -53,7 +53,7 @@ canvas#board {
   width: 120px;
 }
 
-#scoreBox {
+#scoreBox, #linesBox {
   font-size: 30px;
   font-weight: bold;
 }

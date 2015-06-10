@@ -18,7 +18,7 @@ var PD = {
                                  [1],
                                  [1]], 
                         'startOffset': [0,1], 
-                        'rotOffset': [2,-1]} 
+                        'rotOffset': [2,-1]}
                         ],
           'color': 'cyan'
     },
