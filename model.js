@@ -8,16 +8,6 @@
 // iterationDelay = ((11 - actualLevel) * 0.05);  // [seconds]
 // pointAward = ( (21 + (3 * actualLevel)) - heightDropped );
 
-// RNG with seed from http://stackoverflow.com/a/19303725/856897
-function RNG(s) {
-  this.seed = s || 0;
-  this.index = this.seed;
-  this.next = function() {
-    var x = Math.sin(this.index++) * 10000;
-    return x - Math.floor(x);
-  };
-}
-var rng = new RNG();
 
 var model;
 
@@ -213,8 +203,7 @@ function Model() {
   // place a new piece at the top
   this.newPiece = function() {
     var pname = this.nextPieceName;
-    this.nextPieceName = PD.pieceList[Math.floor(rng.next()
-        * PD.pieceList.length)];
+    this.nextPieceName = PD.nextPieceName();
     var offset = PD.pieces[pname].configs[0].startOffset;
     // place piece at the center-top of the screen
     this.curPiece = {
@@ -260,8 +249,7 @@ function Model() {
     this.linesCleared = 0;
     this.tickDelay = 1000;
     this.newBoard();
-    this.nextPieceName = PD.pieceList[Math.floor(rng.next()
-        * PD.pieceList.length)];
+    this.nextPieceName = PD.nextPieceName();
     this.newPiece();
     this.resume();
   }

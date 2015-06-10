@@ -1,5 +1,6 @@
 // ------------- ONLOAD -----------------
 $(function() { // when DOM is loaded
+  PD = new PieceData();
   model = new Model();
   view = new View();
   model.init();

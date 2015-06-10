@@ -1,8 +1,13 @@
-var PD = {
+var PD;
+
+// PieceData is a self-contained model data structure.
+// It also returns random piece names.
+
+function PieceData() {
   // startOffset is the position of the piece's top-left block compared to the
   // board's (5, 1) cell, when the piece is created.
   // rotOffset is how I have to translate the piece when I rotate it.
-  pieces: {
+  this.pieces = {
     'o': {'configs': [ {'shape': [[1,1],
                                   [1,1]], 
                          'startOffset': [1,0], 
@@ -110,8 +115,17 @@ var PD = {
                         'rotOffset': [0,0]} ],
           'color': 'purple'
     }
- 
-  },
+  };
   
-  pieceList: ['i', 'o', 's', 'z', 'l', 'j', 't']
+  // pieces available in this game
+  this.pieceList = ['i', 'o', 's', 'z', 'l', 'j', 't'];
+
+  // RNG with seed from http://stackoverflow.com/a/19303725/856897
+  this.rngIndex = 0;
+  this.nextPieceName = function() {
+    var x = Math.sin(this.rngIndex++) * 10000;
+    var randFloat = x - Math.floor(x);
+    return this.pieceList[Math.floor(randFloat * this.pieceList.length)]
+  };
+  
 };
