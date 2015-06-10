@@ -1,12 +1,7 @@
 // TODO
-// speed increase
 // wall kick
 // score when dropping
 // cookie for auth
-
-// Tetris spec: http://www.colinfahey.com/tetris/tetris.html
-// iterationDelay = ((11 - actualLevel) * 0.05);  // [seconds]
-// pointAward = ( (21 + (3 * actualLevel)) - heightDropped );
 
 
 var model;
@@ -20,6 +15,7 @@ function Model() {
   this.curPiece = {};
   this.nextPieceName = null;
   this.linesCleared = 0;
+  this.level = 1;
   this.LEVELREQ = 5; // increase game speed every X lines. Must be > 4.
   this.score = 0;
   this.gameOver = false;
@@ -27,26 +23,26 @@ function Model() {
   this.tickTimer = null;
   this.tickDelay = 1000; // milliseconds
   this.eventQueue = []; // Events for the view. The view pops them.
+  this.linesClearedScores = [ 100, 200, 400, 800 ]
 
   // perform user command onto model
   // commands: 'left', 'right', 'down', 'rotate', 'menu', 'harddrop'
   this.pressKey = function(cmdStr) {
     switch (cmdStr) {
     case 'left':
-      this.tryAction(-1, false);
+      this.tryMove(-1, 0, false);
       break;
     case 'right':
-      this.tryAction(1, false);
+      this.tryMove(1, 0, false);
       break;
     case 'rotate':
-      this.tryAction(0, true);
+      this.tryMove(0, 0, true);
       break;
     case 'down':
       this.tryDescent();
       break;
     case 'harddrop':
-      while (this.tryDescent()) {
-      } // drop until you can't
+      this.hardDrop();
       break;
     case 'menu':
       if (this.paused) {
@@ -58,18 +54,20 @@ function Model() {
     }
   }
 
-  // Make a copy of current piece, and left/right/rotate the copy.
+  // Make a copy of current piece, and left/right/down/rotate the copy.
   // If the copy is in a valid position, replace current piece by the copy.
-  this.tryAction = function(dx, rotate) {
-    var p = JSON.parse(JSON.stringify(this.curPiece)); // copy of current piece
+  // Return whether the copy's position is valid.
+  this.tryMove = function(dx, dy, rotate) {
+    // Make a copy, and move/rotate it to its new position.
+    var p = JSON.parse(JSON.stringify(this.curPiece)); // copy
     var pdata = PD.pieces[p.name];
     var nShapes = pdata.configs.length;
     p.orientation = (p.orientation + rotate) % nShapes; // abuse true = 1
     var pConfig = pdata.configs[p.orientation]; // piece configuration
     var shape = pConfig.shape;
     p.x += dx + rotate * pConfig.rotOffset[0];
-    p.y += rotate * pConfig.rotOffset[1];
-
+    p.y += dy + rotate * pConfig.rotOffset[1];
+    // check if the copy's position is valid
     var validPosition = true;
     var cx, cy; // store board coordinates of each cell of the updated piece
     for ( var j = 0; j < shape.length; j++) {
@@ -85,64 +83,68 @@ function Model() {
         }
       }
     }
-
-    if (validPosition) { // updated copy is valid
-      this.curPiece = p;
+    if (validPosition) {
+      this.curPiece = p
     }
+    return validPosition;
   }
 
-  // Make a copy of the current piece. Try descending the copy.
-  // If the copy is in a valid position, replace current piece by the copy.
-  // If not, fixate the current piece and create a new one.
-  // Return whether the move is valid.
+  // Make the current piece drop by one cell.
   this.tryDescent = function() {
-    var p = JSON.parse(JSON.stringify(this.curPiece)); // copy of current piece
-    var shape = PD.pieces[p.name].configs[p.orientation].shape;
-    p.y += 1;
+    var valid = this.tryMove(0, 1, false);
+    if (!valid) {
+      this.integrateCurPiece();
+      this.clearFullRows();
+    }
+    return valid;
+  }
 
-    var validPosition = true;
-    var cx, cy; // store board coordinates of each cell of the updated piece
-    for ( var j = 0; j < shape.length; j++) {
-      for ( var i = 0; i < shape[j].length; i++) {
-        if (shape[j][i]) { // only look at full cells of the piece
-          cx = p.x + i;
-          cy = p.y + j;
-          if (cy >= this.ROWS || this.board[cy][cx]) { // floor or blocked
-            validPosition = false;
-            break;
-          }
+  // Make the current piece descend until it can't anymore.
+  this.hardDrop = function() {
+    this.eventQueue.push({
+      'eventType' : 'hardDrop'
+    });
+    var numDescents = 0;
+    while (this.tryDescent()) {
+      numDescents++;
+    }
+    this.score += numDescents * 2 * this.level;
+  }
+
+  // Integrate the current piece into the board, and create new current piece.
+  this.integrateCurPiece = function() {
+    var p = this.curPiece;
+    var shape = PD.pieces[p.name].configs[p.orientation].shape;
+    var ccx, ccy; // board coords of each cell of the current piece
+    for ( var jj = 0; jj < shape.length; jj++) {
+      for ( var ii = 0; ii < shape[jj].length; ii++) {
+        ccx = p.x + ii;
+        ccy = p.y + jj;
+        if (shape[jj][ii]) { // only look at full cells of the piece
+          this.board[ccy][ccx] = p.name;
         }
       }
     }
+    this.newPiece();
+  }
 
-    if (validPosition) { // updated copy is valid
-      this.curPiece = p;
-    } else { // fixate piece into the board, and create a new piece
-      var ccx, ccy; // board coords of each cell of the current piece
-      for ( var jj = 0; jj < shape.length; jj++) {
-        for ( var ii = 0; ii < shape[jj].length; ii++) {
-          ccx = this.curPiece.x + ii;
-          ccy = this.curPiece.y + jj;
-          if (shape[jj][ii]) { // only look at full cells of the piece
-            this.board[ccy][ccx] = p.name;
-          }
+  // Detect and remove full rows.
+  this.clearFullRows = function() {
+    // detect full rows
+    var fullRows = []; // list of rows to be removed
+    for ( var y = 0; y < this.board.length; y++) {
+      var rowFull = true; // is the current row full?
+      for ( var x = 0; x < this.board[y].length; x++) {
+        if (this.board[y][x] == 0) {
+          rowFull = false;
+          break;
         }
       }
-      this.score += 1; // TODO: should depend on height dropped
-      // find full rows
-      var fullRows = []; // list of rows to be removed
-      for ( var y = 0; y < this.board.length; y++) {
-        var rowFull = true; // is the current row full?
-        for ( var x = 0; x < this.board[y].length; x++) {
-          if (this.board[y][x] == 0) {
-            rowFull = false;
-            break;
-          }
-        }
-        if (rowFull) { // add the current row to the remove list.
-          fullRows.push(y);
-        }
+      if (rowFull) { // add the current row to the remove list.
+        fullRows.push(y);
       }
+    }
+    if (fullRows.length > 0) {
       // remove full rows
       fullRows.sort(); // make sure the highest rows come first
       for ( var index in fullRows) {
@@ -153,31 +155,31 @@ function Model() {
           }
         }
       }
-      // increase score if cleared row(s)
-      if (fullRows.length > 0) {
-        this.score += fullRows.length * 5; // TODO: more points if more lines
-        this.eventQueue.push({
-          'eventType' : 'clear',
-          'rows' : fullRows
-        });
-        var oldClears = this.linesCleared;
-        this.linesCleared += fullRows.length;
-        if (oldClears % this.LEVELREQ > this.linesCleared % this.LEVELREQ) {
-          this.tickDelay -= 50;
-        }
-        clearInterval(this.tickTimer);
+      // increase score
+      this.score += this.linesClearedScores[fullRows.length - 1] * this.level;
+      this.eventQueue.push({
+        'eventType' : 'clear',
+        'rows' : fullRows
+      });
+      var prevCleared = this.linesCleared;
+      this.linesCleared += fullRows.length;
+      // If level up, increase game speed.
+      // Level up <=> (num lines before) mod 10 > (num lines after) mod 10
+      if (prevCleared % this.LEVELREQ > this.linesCleared % this.LEVELREQ) {
+        this.tickDelay = Math.max(this.tickDelay - 50, 100); // cap at 100ms
+        clearInterval(this.tickTimer); // recreate timer
         this.tickTimer = setInterval(this.tryDescent.bind(this), this.tickDelay);
       }
-      // create a new piece
-      this.newPiece();
     }
-    return validPosition;
   }
 
   // user pressed the escape key
   this.pause = function() {
     this.paused = true;
     clearInterval(this.tickTimer);
+    this.eventQueue.push({
+      'eventType' : 'pause'
+    });
   }
 
   // user pressed ESC key again.
@@ -187,6 +189,9 @@ function Model() {
     // We need to bind the model as this.
     // http://stackoverflow.com/a/21712258/856897
     this.tickTimer = setInterval(this.tryDescent.bind(this), this.tickDelay);
+    this.eventQueue.push({
+      'eventType' : 'resume'
+    });
   }
 
   // create board
@@ -200,7 +205,7 @@ function Model() {
     }
   }
 
-  // place a new piece at the top
+  // Place a new piece at the top. Detect game over.
   this.newPiece = function() {
     var pname = this.nextPieceName;
     this.nextPieceName = PD.nextPieceName();
@@ -236,7 +241,7 @@ function Model() {
       });
       this.pause();
       this.init();
-    } else {
+    } else { // game continues
       this.eventQueue.push({
         'eventType' : 'newPiece'
       });
@@ -247,6 +252,7 @@ function Model() {
   this.init = function() {
     this.score = 0;
     this.linesCleared = 0;
+    this.level = 1;
     this.tickDelay = 1000;
     this.newBoard();
     this.nextPieceName = PD.nextPieceName();
