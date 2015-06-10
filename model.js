@@ -1,6 +1,6 @@
 // TODO
 // wall kick
-// score when dropping
+// adaptive difficulty
 // cookie for auth
 
 var model;
@@ -22,7 +22,7 @@ function Model() {
   this.tickTimer = null;
   this.tickDelay = 1000; // milliseconds between two model ticks.
   this.eventQueue = []; // Events for the view. The view pops them.
-  this.linesClearedScores = [ 100, 200, 400, 800 ]
+  this.linesClearedScores = [ 100, 200, 400, 800 ];
 
   // perform user command onto model
   // commands: 'left', 'right', 'down', 'rotate', 'menu', 'harddrop'
@@ -35,7 +35,15 @@ function Model() {
       this.tryMove(1, 0, false);
       break;
     case 'rotate':
-      this.tryMove(0, 0, true);
+      if (!this.tryMove(0, 0, true)) { // need wall-kick
+        if (!this.tryMove(1, 0, true)) { // try on the right
+          if (!this.tryMove(-1, 0, true)) {// try on the left
+            if (!this.tryMove(2, 0, true)) { // right twice for I piece
+              this.tryMove(-2, 0, true) // left twice for I piece
+            }
+          }
+        }
+      }
       break;
     case 'down':
       this.tryDescent();
@@ -144,10 +152,10 @@ function Model() {
       }
     }
     if (fullRows.length > 0) {
-      // Remove full rows. 
-      fullRows.sort(function(a, b) { // Make sure the highest rows come first. 
+      // Remove full rows.
+      fullRows.sort(function(a, b) { // Make sure the highest rows come first.
         return a - b;
-      }); 
+      });
       for ( var index in fullRows) {
         var rowNum = fullRows[index];
         for ( var y = rowNum - 1; y >= 0; y--) { // for all rows above me
