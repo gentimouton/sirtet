@@ -184,7 +184,7 @@ function View() {
     // setInterval is bound to global context,
     // so we need to bind the view as this.
     // http://stackoverflow.com/a/21712258/856897
-    setInterval(this.render.bind(this), 30);// milliseconds
+    setInterval(this.render.bind(this), 100);// milliseconds
   }
 
 } // end view

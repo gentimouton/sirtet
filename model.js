@@ -3,7 +3,6 @@
 // score when dropping
 // cookie for auth
 
-
 var model;
 
 // ------------- MODEL ---------------
@@ -21,7 +20,7 @@ function Model() {
   this.gameOver = false;
   this.paused = false;
   this.tickTimer = null;
-  this.tickDelay = 1000; // milliseconds
+  this.tickDelay = 1000; // milliseconds between two model ticks.
   this.eventQueue = []; // Events for the view. The view pops them.
   this.linesClearedScores = [ 100, 200, 400, 800 ]
 
@@ -145,8 +144,10 @@ function Model() {
       }
     }
     if (fullRows.length > 0) {
-      // remove full rows
-      fullRows.sort(); // make sure the highest rows come first
+      // Remove full rows. 
+      fullRows.sort(function(a, b) { // Make sure the highest rows come first. 
+        return a - b;
+      }); 
       for ( var index in fullRows) {
         var rowNum = fullRows[index];
         for ( var y = rowNum - 1; y >= 0; y--) { // for all rows above me
@@ -214,7 +215,7 @@ function Model() {
     this.curPiece = {
       'name' : pname,
       'orientation' : 0,
-      'x' : 5 - offset[0],
+      'x' : Math.floor(this.COLS / 2) - offset[0],
       'y' : 1 - offset[1]
     };
 
