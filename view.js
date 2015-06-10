@@ -166,6 +166,10 @@ function View() {
   }
 
   this.init = function() {
+    $('#board').attr({
+      'width' : model.COLS * this.BW,
+      'height' : (model.ROWS - 1) * this.BH
+    })
     $('#overlay').hide();
     // wire the mute/unmute buttons
     $('#unmutedBtn').click(function() {
